@@ -1,0 +1,178 @@
+---
+title: "Predicting Whiff Rate"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+require(dplyr)
+require(randomForest)
+require(ggplot2)
+require(caret)
+```
+
+
+```{r}
+four_seam_fastball_2020 <- read.csv(file.choose())
+four_seam_fastball_2019 <- read.csv(file.choose())
+two_seam_fastball_2020 <- read.csv(file.choose())
+two_seam_fastball_2019 <- read.csv(file.choose())
+changeup_2020 <- read.csv(file.choose())
+changeup_2019 <- read.csv(file.choose())
+slider_2020 <- read.csv(file.choose())
+slider_2019 <- read.csv(file.choose())
+curvevall_2020 <- read.csv(file.choose())
+curveball_2019 <- read.csv(file.choose())
+split_2020 <- read.csv(file.choose())
+split_2019 <- read.csv(file.choose())
+```
+
+```{r}
+four_seam_fastball_2020 <- select(four_seam_fastball_2020, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
+four_seam_fastball_2019 <- select(four_seam_fastball_2019, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
+slider_2020 <- select(slider_2020, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
+slider_2019 <- select(slider_2019, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
+changeup_2020 <- select(changeup_2020, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
+changeup_2019 <- select(changeup_2019, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
+curvevall_2020 <- select(curvevall_2020, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
+curveball_2019 <- select(curveball_2019, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
+split_2020 <- select(split_2020, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
+split_2019 <- select(split_2019, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
+two_seam_fastball_2020 <- select(two_seam_fastball_2020, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
+two_seam_fastball_2019 <- select(two_seam_fastball_2019, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
+```
+
+```{r}
+four_seam_fastball_2020$PitchType <- rep("fastball", nrow(four_seam_fastball_2020))
+four_seam_fastball_2019$PitchType <- rep("fastball", nrow(four_seam_fastball_2019))
+two_seam_fastball_2020$PitchType <- rep("2seam", nrow(two_seam_fastball_2020))
+two_seam_fastball_2019$PitchType <- rep("2seam", nrow(two_seam_fastball_2019))
+changeup_2020$PitchType <- rep("changeup", nrow(changeup_2020))
+changeup_2019$PitchType <- rep("changeup", nrow(changeup_2019))
+slider_2020$PitchType <- rep("slider", nrow(slider_2020))
+slider_2019$PitchType <- rep("slider", nrow(slider_2019))
+curvevall_2020$PitchType <- rep("curveball", nrow(curvevall_2020))
+curveball_2019$PitchType <- rep("curveball", nrow(curveball_2019))
+split_2020$PitchType <- rep("splitter", nrow(split_2020))
+split_2019$PitchType <- rep("splitter", nrow(split_2019))
+```
+
+```{r}
+Pitches_2020 <- full_join(four_seam_fastball_2020, two_seam_fastball_2020, by = "player_name", copy = TRUE, suffix = c(".four_seam", ".two_seam"))
+Pitches_2020 <- full_join(Pitches_2020, changeup_2020, by = "player_name", copy = TRUE, suffix = c(".changeup", ".changeup"))
+Pitches_2020 <- full_join(Pitches_2020, slider_2020, by = "player_name", copy = TRUE, suffix = c(".slider", ".slider"))
+Pitches_2020 <- full_join(Pitches_2020, curvevall_2020, by = "player_name", copy = TRUE, suffix = c(".curveball", ".curveball"))
+Pitches_2020 <- full_join(Pitches_2020, split_2020, by = "player_name", copy = TRUE, suffix = c(".splitter", ".splitter"))
+
+Pitches_2019 <- full_join(four_seam_fastball_2020, two_seam_fastball_2020, by = "player_name", copy = TRUE, suffix = c(".four_seam", ".two_seam"))
+Pitches_2019 <- full_join(Pitches_2019, changeup_2020, by = "player_name", copy = TRUE, suffix = c(".four_seam", ".changeup"))
+Pitches_2019 <- full_join(Pitches_2019, slider_2020, by = "player_name", copy = TRUE, suffix = c(".slider", ".slider"))
+Pitches_2019 <- full_join(Pitches_2019, curvevall_2020, by = "player_name", copy = TRUE, suffix = c(".curveball", ".curveball"))
+Pitches_2019 <- full_join(Pitches_2019, split_2020, by = "player_name", copy = TRUE, suffix = c(".splitter", ".splitter"))
+```
+
+```{r}
+colnames(Pitches_2020)[20:28] <- paste(colnames(Pitches_2020)[20:28], "changeup", sep = ".")
+colnames(Pitches_2020)[29:37] <- paste(colnames(Pitches_2020)[29:37], "slider", sep = ".")
+colnames(Pitches_2020)[38:46] <- paste(colnames(Pitches_2020)[38:46], "curveball", sep = ".")
+colnames(Pitches_2020)[47:55] <- paste(colnames(Pitches_2020)[47:55], "splitter", sep = ".")
+
+colnames(Pitches_2019)[20:28] <- paste(colnames(Pitches_2019)[20:28], "changeup", sep = ".")
+colnames(Pitches_2019)[29:37] <- paste(colnames(Pitches_2019)[29:37], "slider", sep = ".")
+colnames(Pitches_2019)[38:46] <- paste(colnames(Pitches_2019)[38:46], "curveball", sep = ".")
+colnames(Pitches_2019)[47:55] <- paste(colnames(Pitches_2019)[47:55], "splitter", sep = ".")
+```
+
+```{r}
+Pitches_full <- rbind(Pitches_2020, Pitches_2019)
+```
+
+```{r}
+Pitches_full <- transform(Pitches_full, spin_rate.two_seam = as.numeric(spin_rate.two_seam))
+Pitches_full <- transform(Pitches_full, spin_rate.changeup = as.numeric(spin_rate.changeup))
+Pitches_full <- transform(Pitches_full, spin_rate.slider = as.numeric(spin_rate.slider))
+Pitches_full <- transform(Pitches_full, spin_rate.curveball = as.numeric(spin_rate.curveball))
+Pitches_full <- transform(Pitches_full, spin_rate.splitter = as.numeric(spin_rate.splitter))
+```
+
+```{r}
+for(i in 1:ncol(Pitches_full)){
+  Pitches_full[is.na(Pitches_full[,i]), i] <- mean(Pitches_full[,i], na.rm = TRUE)
+}
+```
+
+```{r}
+Pitches_full <- mutate(Pitches_full, "whiff_rate" = (whiffs.four_seam + whiffs.two_seam + whiffs.changeup + whiffs.slider + whiffs.curveball + whiffs.splitter) / ( swings.four_seam + swings.two_seam + swings.changeup + swings.slider + swings.curveball + swings.splitter))
+```
+
+```{r}
+Pitches_full <- Pitches_full[ , colSums(is.na(Pitches_full)) == 0]
+```
+
+```{r}
+set.seed(1816)
+whiff_train <- sample(nrow(Pitches_full), 0.75*nrow(Pitches_full), replace = FALSE)
+whiff_train_set <- Pitches_full[whiff_train,]
+whiff_test_set <- Pitches_full[-whiff_train,]
+```
+
+```{r}
+Whiff_model <- randomForest(whiff_rate ~ ., data = Pitches_full, ntree = 50)
+```
+
+```{r}
+whiff_rateIMP <- importance(Whiff_model)
+whiff_rateIMP[order(-whiff_rateIMP),]
+```
+
+```{r}
+Whiff_model_1 <- randomForest(whiff_rate ~ velocity.changeup + velocity.four_seam + velocity.curveball + velocity.slider + velocity.splitter + velocity.two_seam + spin_rate.changeup + spin_rate.curveball + spin_rate.four_seam + spin_rate.slider + spin_rate.splitter + spin_rate.two_seam, data = whiff_train_set, ntrees = 50)
+```
+
+```{r}
+whiff_train_pred <- predict(Whiff_model_1, whiff_train_set, type = "response")
+whiff_test_pred <- predict(Whiff_model_1, whiff_test_set, type = "response")
+```
+
+```{r}
+whiff_train_set <- cbind(whiff_train_set, whiff_train_pred)
+whiff_test_set <- cbind(whiff_test_set, whiff_test_pred)
+```
+
+```{r}
+whiff_train_set <- rename(whiff_train_set, whiff_pred = whiff_train_pred)
+whiff_test_set <- rename(whiff_test_set, whiff_pred = whiff_test_pred)
+```
+
+```{r}
+Pitches_full <- rbind(whiff_train_set, whiff_test_set)
+```
+
+```{r}
+Pitches_full <- mutate(Pitches_full, Whiff_Diff = whiff_pred - whiff_rate)
+```
+
+```{r}
+install.packages("devtools")
+library(devtools)
+devtools::install_github('skinner927/reprtree')
+library(reprtree)
+```
+
+```{r}
+whiffIMP_real <- importance(Whiff_model_1)
+whiffIMP_real[order(-whiffIMP_real),]
+```
+
+```{r}
+whiffIMP_real <- as.data.frame(whiffIMP_real)
+ggplot(whiffIMP_real, aes(IncNodePurity, row.names(whiffIMP_real))) +
+  geom_bar(stat = 'identity', width = 0.1, fill = "blue") + 
+  labs(title = 'Whiff Variable Importance', x = "Importance", y = "Variable")
+```
+
