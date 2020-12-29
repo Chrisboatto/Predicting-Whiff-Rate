@@ -9,6 +9,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 
+# In this assignment we will look into what pitch out of the major six are most compatible with predicting a high Whiff Rate. Whiff rate is the product of dividing the amount of swings and misses (whiffs) a pitcher gets and the total amount of swings. Whiffs is a good a indicator of how well the pitcher's natural repitoire is at missing bats. The more bats a pitcher can miss the better chance a pitcher can stifle and offense completely.
+
+# Theses are the following packages that will be needed
+
 ```{r}
 require(dplyr)
 require(randomForest)
@@ -16,6 +20,7 @@ require(ggplot2)
 require(caret)
 ```
 
+# The following data sets were taken from BaseballSavant website. I used the Search tab and set my stipulations for each year of the following. I will post the data sets into the folder. You make need to change the coding underneath to complete it.
 
 ```{r}
 four_seam_fastball_2020 <- read.csv(file.choose())
@@ -32,6 +37,8 @@ split_2020 <- read.csv(file.choose())
 split_2019 <- read.csv(file.choose())
 ```
 
+# I filtered out certain attributes to simplify the data set into what I would need to 
+
 ```{r}
 four_seam_fastball_2020 <- select(four_seam_fastball_2020, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
 four_seam_fastball_2019 <- select(four_seam_fastball_2019, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
@@ -46,6 +53,8 @@ split_2019 <- select(split_2019, c(velocity, spin_rate, whiffs, swings, takes, t
 two_seam_fastball_2020 <- select(two_seam_fastball_2020, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
 two_seam_fastball_2019 <- select(two_seam_fastball_2019, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
 ```
+
+# I created another attribute determinig what pitch was which. I did this to identify the pitches before I join the data frames. 
 
 ```{r}
 four_seam_fastball_2020$PitchType <- rep("fastball", nrow(four_seam_fastball_2020))
@@ -62,6 +71,8 @@ split_2020$PitchType <- rep("splitter", nrow(split_2020))
 split_2019$PitchType <- rep("splitter", nrow(split_2019))
 ```
 
+# I joined the data frames above to create two large data set.
+
 ```{r}
 Pitches_2020 <- full_join(four_seam_fastball_2020, two_seam_fastball_2020, by = "player_name", copy = TRUE, suffix = c(".four_seam", ".two_seam"))
 Pitches_2020 <- full_join(Pitches_2020, changeup_2020, by = "player_name", copy = TRUE, suffix = c(".changeup", ".changeup"))
@@ -76,6 +87,8 @@ Pitches_2019 <- full_join(Pitches_2019, curvevall_2020, by = "player_name", copy
 Pitches_2019 <- full_join(Pitches_2019, split_2020, by = "player_name", copy = TRUE, suffix = c(".splitter", ".splitter"))
 ```
 
+# I added suffix to the columns underneath to differentiate the attributes
+
 ```{r}
 colnames(Pitches_2020)[20:28] <- paste(colnames(Pitches_2020)[20:28], "changeup", sep = ".")
 colnames(Pitches_2020)[29:37] <- paste(colnames(Pitches_2020)[29:37], "slider", sep = ".")
@@ -88,9 +101,13 @@ colnames(Pitches_2019)[38:46] <- paste(colnames(Pitches_2019)[38:46], "curveball
 colnames(Pitches_2019)[47:55] <- paste(colnames(Pitches_2019)[47:55], "splitter", sep = ".")
 ```
 
+# I bound both the 2019 and 2020 datasets to create the main data set
+
 ```{r}
 Pitches_full <- rbind(Pitches_2020, Pitches_2019)
 ```
+
+# I converted the following attributes to numeric. They were previously all character attributes but needed to be changed to numeric in order for me to perform a Random Forest multivariate analysis
 
 ```{r}
 Pitches_full <- transform(Pitches_full, spin_rate.two_seam = as.numeric(spin_rate.two_seam))
@@ -100,19 +117,27 @@ Pitches_full <- transform(Pitches_full, spin_rate.curveball = as.numeric(spin_ra
 Pitches_full <- transform(Pitches_full, spin_rate.splitter = as.numeric(spin_rate.splitter))
 ```
 
+# The following for loop turns all the NA's into the mean of each column that they are in. I decided to make the NA's into the average of the column for two reasons; it was not going to change the whiff ratio and it would allow me to keep as many observations as possible.
+
 ```{r}
 for(i in 1:ncol(Pitches_full)){
   Pitches_full[is.na(Pitches_full[,i]), i] <- mean(Pitches_full[,i], na.rm = TRUE)
 }
 ```
 
+# I created the metric "Whiff Rate" which will be the metric I will use as the parameter for the formula.
+
 ```{r}
 Pitches_full <- mutate(Pitches_full, "whiff_rate" = (whiffs.four_seam + whiffs.two_seam + whiffs.changeup + whiffs.slider + whiffs.curveball + whiffs.splitter) / ( swings.four_seam + swings.two_seam + swings.changeup + swings.slider + swings.curveball + swings.splitter))
 ```
 
+# The following removes columns with NA values in it. The amount of attributes with NA values in the dataset was minimal and the attributes that had the NA values were not helpful to the random forest formula anyways
+
 ```{r}
 Pitches_full <- Pitches_full[ , colSums(is.na(Pitches_full)) == 0]
 ```
+
+# I then created the train and test data sets
 
 ```{r}
 set.seed(1816)
@@ -121,9 +146,13 @@ whiff_train_set <- Pitches_full[whiff_train,]
 whiff_test_set <- Pitches_full[-whiff_train,]
 ```
 
+# I created the first model using the entire data set to gain a basic model.
+
 ```{r}
 Whiff_model <- randomForest(whiff_rate ~ ., data = Pitches_full, ntree = 50)
 ```
+
+# The following shows the 
 
 ```{r}
 whiff_rateIMP <- importance(Whiff_model)
