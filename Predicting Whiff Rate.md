@@ -18,7 +18,7 @@ The below chart depicts the importance of each feature for whiff rate based off 
 
 
 
-[Image of Feature Importance](https://github.com/Chrisboatto/Predicting-Whiff-Rate/blob/main/Whiff Variable Importance.png)
+![Image of Whiff Rate Variable Importance]([Whiff Variable Importance.png (700×432) (raw.githubusercontent.com)](https://raw.githubusercontent.com/Chrisboatto/Predicting-Whiff-Rate/main/Whiff Variable Importance.png))
 
 
 
