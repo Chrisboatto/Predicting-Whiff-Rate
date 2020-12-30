@@ -8,4 +8,4 @@ When I attempted to plot a decision tree from the random forest model it became 
 
 The below chart depicts the importance of each feature for whiff rate based off the model I ran
 
-[Image of Feature Importance](https://github.com/Chrisboatto/Predicting-Whiff-Rate/blob/main/Whiff Variable Importance.png)
+[Image of Feature Importance](https://raw.githubusercontent.com/Chrisboatto/Predicting-Whiff-Rate/main/Whiff%20Variable%20Importance.png)
