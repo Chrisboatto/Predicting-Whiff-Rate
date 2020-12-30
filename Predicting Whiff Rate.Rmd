@@ -37,7 +37,7 @@ split_2020 <- read.csv(file.choose())
 split_2019 <- read.csv(file.choose())
 ```
 
-# I filtered out certain attributes to simplify the data set into what I would need to 
+# I filtered out certain attributes to simplify the data set into what I would potentially need to create my predictive model.
 
 ```{r}
 four_seam_fastball_2020 <- select(four_seam_fastball_2020, c(velocity, spin_rate, whiffs, swings, takes, total_pitches, player_name, pitches, xwoba, effective_speed))
@@ -87,7 +87,7 @@ Pitches_2019 <- full_join(Pitches_2019, curvevall_2020, by = "player_name", copy
 Pitches_2019 <- full_join(Pitches_2019, split_2020, by = "player_name", copy = TRUE, suffix = c(".splitter", ".splitter"))
 ```
 
-# I added suffix to the columns underneath to differentiate the attributes
+# I added suffix to the columns underneath to differentiate the attributes after being joined together
 
 ```{r}
 colnames(Pitches_2020)[20:28] <- paste(colnames(Pitches_2020)[20:28], "changeup", sep = ".")
@@ -101,7 +101,7 @@ colnames(Pitches_2019)[38:46] <- paste(colnames(Pitches_2019)[38:46], "curveball
 colnames(Pitches_2019)[47:55] <- paste(colnames(Pitches_2019)[47:55], "splitter", sep = ".")
 ```
 
-# I bound both the 2019 and 2020 datasets to create the main data set
+# I bound both the 2019 and 2020 datasets to create the main data set.
 
 ```{r}
 Pitches_full <- rbind(Pitches_2020, Pitches_2019)
@@ -137,7 +137,7 @@ Pitches_full <- mutate(Pitches_full, "whiff_rate" = (whiffs.four_seam + whiffs.t
 Pitches_full <- Pitches_full[ , colSums(is.na(Pitches_full)) == 0]
 ```
 
-# I then created the train and test data sets
+# I then created the train and test data sets to split the data. This is done to randomly choose and place obsevations in seperate groupings to remove potential bias.
 
 ```{r}
 set.seed(1816)
@@ -152,21 +152,27 @@ whiff_test_set <- Pitches_full[-whiff_train,]
 Whiff_model <- randomForest(whiff_rate ~ ., data = Pitches_full, ntree = 50)
 ```
 
-# The following shows the 
+# The following shows the importance of each parameter from the formula above. I left all the attributes in the first model becuase I wanted to determine which attributes should have been taken out to ensure a fair model. The higher the correlation of an attribute the more that attribute dominates the model thus leading to a redundant output.
 
 ```{r}
 whiff_rateIMP <- importance(Whiff_model)
 whiff_rateIMP[order(-whiff_rateIMP),]
 ```
 
+# Using the feature importance above I created a second model to gain a specific understanding of what predicts whiff rate based on the attributes of velocity and spin rate from each different pitch.
+
 ```{r}
 Whiff_model_1 <- randomForest(whiff_rate ~ velocity.changeup + velocity.four_seam + velocity.curveball + velocity.slider + velocity.splitter + velocity.two_seam + spin_rate.changeup + spin_rate.curveball + spin_rate.four_seam + spin_rate.slider + spin_rate.splitter + spin_rate.two_seam, data = whiff_train_set, ntrees = 50)
 ```
+
+# Using the "response" method I predicted the whiff rate onto the test and train data sets seperately using the Whiff model created above.
 
 ```{r}
 whiff_train_pred <- predict(Whiff_model_1, whiff_train_set, type = "response")
 whiff_test_pred <- predict(Whiff_model_1, whiff_test_set, type = "response")
 ```
+
+# I then bound the predicted values to the train and test data sets respectively and renamed them to "Whiff Pred".
 
 ```{r}
 whiff_train_set <- cbind(whiff_train_set, whiff_train_pred)
@@ -178,6 +184,8 @@ whiff_train_set <- rename(whiff_train_set, whiff_pred = whiff_train_pred)
 whiff_test_set <- rename(whiff_test_set, whiff_pred = whiff_test_pred)
 ```
 
+# I bound the train and test data sets to gain the full completed data set and created one last attribute to determine the difference between the actual Whiff Rate and the Predicted
+
 ```{r}
 Pitches_full <- rbind(whiff_train_set, whiff_test_set)
 ```
@@ -186,22 +194,26 @@ Pitches_full <- rbind(whiff_train_set, whiff_test_set)
 Pitches_full <- mutate(Pitches_full, Whiff_Diff = whiff_pred - whiff_rate)
 ```
 
+# The 
+
 ```{r}
-install.packages("devtools")
-library(devtools)
-devtools::install_github('skinner927/reprtree')
-library(reprtree)
+plot(Whiff_model_1, main = "Whiff Rate Model")
 ```
+
+# The below code creates the new feature importance metrics to show what features were most influential in whiff rate.
 
 ```{r}
 whiffIMP_real <- importance(Whiff_model_1)
 whiffIMP_real[order(-whiffIMP_real),]
 ```
 
+# The graph below depicts four seam velocity had the most impact on whiff rate. This should show people out there that fastball velocity is key to being an effective pitcher in the MLB
+
 ```{r}
 whiffIMP_real <- as.data.frame(whiffIMP_real)
 ggplot(whiffIMP_real, aes(IncNodePurity, row.names(whiffIMP_real))) +
-  geom_bar(stat = 'identity', width = 0.1, fill = "blue") + 
+  geom_bar(stat = 'identity', width = 0.1, fill = "blue") +
+  geom_point(shape = 21, size = 5, colour = "blue", fill = "white", stroke = 3) + 
   labs(title = 'Whiff Variable Importance', x = "Importance", y = "Variable")
 ```
 
