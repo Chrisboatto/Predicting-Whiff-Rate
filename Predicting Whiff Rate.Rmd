@@ -18,6 +18,9 @@ require(dplyr)
 require(randomForest)
 require(ggplot2)
 require(caret)
+require(devtools)
+devtools::install_github('skinner927/reprtree')
+library(reprtree)
 ```
 
 # The following data sets were taken from BaseballSavant website. I used the Search tab and set my stipulations for each year of the following. I will post the data sets into the folder. You make need to change the coding underneath to complete it.
@@ -159,10 +162,10 @@ whiff_rateIMP <- importance(Whiff_model)
 whiff_rateIMP[order(-whiff_rateIMP),]
 ```
 
-# Using the feature importance above I created a second model to gain a specific understanding of what predicts whiff rate based on the attributes of velocity and spin rate from each different pitch.
+# Using the feature importance above I created a second model to gain a specific understanding of what predicts whiff rate based on the attributes of velocity and spin rate from each different pitch. Setting the maxnodes is important in this model for further depiction. It sets the maximum amount of branches the tree can result to which allows for less cluster when depicting.
 
 ```{r}
-Whiff_model_1 <- randomForest(whiff_rate ~ velocity.changeup + velocity.four_seam + velocity.curveball + velocity.slider + velocity.splitter + velocity.two_seam + spin_rate.changeup + spin_rate.curveball + spin_rate.four_seam + spin_rate.slider + spin_rate.splitter + spin_rate.two_seam, data = whiff_train_set, ntrees = 50)
+Whiff_model_1 <- randomForest(whiff_rate ~ velocity.changeup + velocity.four_seam + velocity.curveball + velocity.slider + velocity.splitter + velocity.two_seam + spin_rate.changeup + spin_rate.curveball + spin_rate.four_seam + spin_rate.slider + spin_rate.splitter + spin_rate.two_seam, data = whiff_train_set, ntrees = 50, maxnodes = 8)
 ```
 
 # Using the "response" method I predicted the whiff rate onto the test and train data sets seperately using the Whiff model created above.
@@ -216,4 +219,8 @@ ggplot(whiffIMP_real, aes(IncNodePurity, row.names(whiffIMP_real))) +
   geom_point(shape = 21, size = 5, colour = "blue", fill = "white", stroke = 3) + 
   labs(title = 'Whiff Variable Importance', x = "Importance", y = "Variable")
 ```
+# The use of the created Reprtree package found on GitHub from skinner927 helped immensely with the depcition of a tree from the Random Forest model I ran above. You can choose any of the trees you established in the model to depictas here I chose the 50th tree. Each tree will be different when depicting however so do not be alarmed.
 
+```{r}
+reprtree:::plot.getTree(Whiff_model_1, k = 50)
+```
