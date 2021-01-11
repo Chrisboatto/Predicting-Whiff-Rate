@@ -1,0 +1,35 @@
+---
+title: "Fantasy Targets"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+# Using the Predictive Whiff Rate project data I was able to determine what pitchers fantasy owners should target in their upcoming drafts or through off season trades. Whiff Rate is a great predictor of strikeouts, a key element to being a top notch pitcher.
+
+# I selected only the attributes that were important based on the Feature Importance of the Random Forest Model. Velocity of off speed pitches is directly correlated to that of the fastball so using fastball velocity solely gives you a good understanding of how hard a pitcher throws all his pitches. The average whiff rate in the MLB is 23.23% so split the data into two groupings; one well above average and below the average. I wanted to chart which pitchers to target and which to avoid.
+
+```{r}
+Fantasy_Pitchers <- select(Pitches_full, c(player_name, velocity.four_seam, spin_rate.four_seam, whiff_pred))
+Fantasy_Targets <- filter(Fantasy_Pitchers, whiff_pred > 0.3)
+Fantasy_Avoid <- filter(Fantasy_Pitchers, whiff_pred < 0.23)
+```
+
+# I then used the distinct() to eliminate duplicate results from both groupings
+
+```{r}
+Fantasy_Targets <- distinct(Fantasy_Targets, player_name, .keep_all = TRUE)
+Fantasy_Avoid <- distinct(Fantasy_Avoid, player_name, .keep_all = TRUE)
+```
+
+# Using the arrange function I ordered the data from greatest to least in both the Targets and Avoid groups tp obtain my results
+
+```{r}
+arrange(Fantasy_Targets, desc(whiff_pred), 20)
+```
+
+```{r}
+arrange(Fantasy_Avoid, whiff_pred)
+```

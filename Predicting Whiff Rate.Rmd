@@ -234,22 +234,3 @@ ggplot(Above_whiff, aes(x = whiff_pred, y = velocity.four_seam)) +
   labs(title = "Whiff Rate Relationship Plot", x = "Predicted Whiff Rate", y = "4 Seam Velocity")
 ```
 
-```{r}
-Fantasy_Pitchers <- select(Pitches_full, c(player_name, velocity.four_seam, spin_rate.four_seam, whiff_pred))
-Fantasy_Targets <- filter(Fantasy_Pitchers, whiff_pred > 0.26)
-Fantasy_Avoid <- filter(Fantasy_Pitchers, whiff_pred < 0.23)
-```
-
-```{r}
-Fantasy_Targets <- distinct(Fantasy_Targets, player_name, .keep_all = TRUE)
-Fantasy_Avoid <- distinct(Fantasy_Avoid, player_name, .keep_all = TRUE)
-```
-
-```{r}
-arrange(Fantasy_Targets, desc(whiff_pred), 20)
-```
-
-```{r}
-arrange(Fantasy_Avoid, whiff_pred)
-```
-
